@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case SLA Source to Contract | Daniel Garcia Costa</title>
+<meta name="description" content="Case de BI: SLA criado do zero para 6 operações e 9 países (dados fictícios).">
+<style>
+  :root { --red:#E41E2B; --ink:#1a1a1a; --bg:#ffffff; --card:#f4efed; --muted:#5f5f5f; --line:#eadfdc; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; }
+  body { font-family: Helvetica, Arial, sans-serif; color:var(--ink); background:var(--bg); border-top:8px solid var(--red); min-height:100vh; }
+  button { font-family: inherit; }
+
+  /* barra do topo */
+  .bar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.96); backdrop-filter:blur(6px);
+         border-bottom:1px solid var(--line); padding:10px 12px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center; }
+  .seg { display:inline-flex; gap:4px; background:var(--card); padding:4px; border-radius:999px; }
+  .seg button { border:0; background:transparent; color:var(--ink); font-weight:700; font-size:14px; padding:8px 16px; border-radius:999px; cursor:pointer; }
+  .seg button[aria-pressed="true"] { background:var(--red); color:#fff; }
+  .seg button:focus-visible, .nav:focus-visible, .btn:focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
+
+  /* carrossel */
+  .chead { padding:20px 16px 4px; text-align:center; }
+  .chead h1 { font-size:clamp(18px,4.6vw,24px); margin:0 0 4px; }
+  .chead p { margin:0; color:var(--muted); font-size:14px; }
+  main.c { max-width:560px; margin:14px auto 28px; padding:0 12px; }
+  .stage { position:relative; }
+  .track { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; border-radius:14px;
+           box-shadow:0 6px 24px rgba(0,0,0,.15); background:#fff; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .track::-webkit-scrollbar { display:none; }
+  .slide { flex:0 0 100%; scroll-snap-align:center; }
+  .slide img { display:block; width:100%; height:auto; aspect-ratio:1080/1350; }
+  .nav { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border:0; border-radius:50%; background:var(--red);
+         color:#fff; font-size:22px; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; }
+  .nav[disabled] { opacity:.25; cursor:default; }
+  .prev { left:-6px; } .next { right:-6px; }
+  @media (min-width:640px) { .prev { left:-56px; } .next { right:-56px; } main.c { max-width:520px; } }
+  .meta { display:flex; align-items:center; justify-content:space-between; margin-top:14px; gap:12px; }
+  .count { font-weight:700; font-size:15px; min-width:56px; }
+  .dots { display:flex; gap:7px; justify-content:center; flex:1; }
+  .dots button { width:10px; height:10px; border-radius:50%; border:0; padding:0; background:#d9d2cf; cursor:pointer; }
+  .dots button[aria-current="true"] { background:var(--red); transform:scale(1.25); }
+  .dl { text-align:center; margin:18px 0 0; font-size:14px; }
+  .btn { display:inline-block; color:var(--red); font-weight:700; text-decoration:none; border:2px solid var(--red); padding:9px 18px; border-radius:999px; }
+  .btn:hover { background:var(--red); color:#fff; }
+  .btn.solid { background:var(--red); color:#fff; }
+  .btn.solid:hover { background:#b8141f; border-color:#b8141f; }
+
+  /* página (site) */
+  .site { max-width:760px; margin:0 auto; padding:0 18px 56px; }
+  .site section { padding:44px 0; border-bottom:1px solid var(--line); }
+  .site section:last-of-type { border-bottom:0; }
+  .kick { display:flex; align-items:center; gap:10px; color:var(--red); font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase; margin:0 0 14px; }
+  .kick::before { content:""; width:12px; height:12px; background:var(--red); border-radius:3px; }
+  .site h1 { font-size:clamp(36px,9vw,64px); line-height:1.05; margin:0 0 18px; letter-spacing:-.02em; }
+  .site h2 { font-size:clamp(26px,6vw,38px); line-height:1.15; margin:0 0 16px; letter-spacing:-.01em; }
+  .site p { font-size:clamp(16px,3.6vw,19px); line-height:1.6; color:var(--muted); margin:0 0 16px; }
+  .lead { font-size:clamp(18px,4vw,22px) !important; }
+  .by { color:var(--ink) !important; font-weight:700; margin-top:22px !important; }
+  .by span { display:block; font-weight:400; color:var(--muted); font-size:15px; }
+  .rule { width:90px; height:6px; background:var(--red); border-radius:3px; margin:6px 0 22px; }
+  .hl { background:var(--card); border-left:6px solid var(--red); border-radius:10px; padding:16px 18px; font-weight:700; color:var(--red) !important; font-size:clamp(18px,4vw,22px) !important; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0; }
+  .stat { background:var(--card); border-radius:16px; padding:18px 10px; text-align:center; }
+  .stat b { display:block; font-size:clamp(40px,11vw,68px); line-height:1; color:var(--red); }
+  .stat span { display:block; margin-top:8px; font-weight:700; font-size:clamp(12px,3vw,15px); }
+  .shot { display:block; width:100%; height:auto; border-radius:14px; margin:18px 0 8px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+  .chip { background:var(--card); color:var(--red); font-weight:700; font-size:14px; padding:8px 14px; border-radius:999px; }
+  .legend { background:var(--card); border-left:6px solid var(--red); border-radius:10px; padding:14px 18px; margin-top:14px; }
+  .legend b { display:block; color:var(--red); font-size:13px; letter-spacing:.08em; margin-bottom:6px; }
+  .legend p { margin:2px 0 !important; font-size:16px !important; color:var(--ink) !important; }
+  .formula { border:1px solid #d9d2cf; border-radius:16px; padding:22px 16px; text-align:center; margin:18px 0; }
+  .formula .t { font-weight:700; font-size:clamp(16px,3.6vw,20px); margin-bottom:10px; }
+  .frac { display:inline-block; }
+  .frac .n { color:var(--red); font-weight:700; font-size:clamp(20px,5vw,30px); padding:0 14px 6px; border-bottom:3px solid var(--ink); }
+  .frac .d { font-weight:700; font-size:clamp(20px,5vw,30px); padding-top:6px; }
+  .formula .ex { margin:14px 0 0 !important; font-size:14px !important; }
+  .light { display:flex; align-items:center; gap:14px; background:var(--card); border-radius:12px; padding:14px 16px; margin:8px 0; }
+  .light i { width:22px; height:22px; border-radius:50%; flex:0 0 22px; }
+  .light b { flex:1; font-size:clamp(16px,3.8vw,20px); }
+  .light span { color:var(--muted); font-size:15px; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:18px 0; }
+  @media (max-width:560px) { .two { grid-template-columns:1fr; } }
+  .card { background:var(--card); border-radius:16px; padding:20px; }
+  .card.red { background:var(--red); }
+  .card h3 { margin:0 0 12px; font-size:18px; }
+  .card.red h3, .card.red li { color:#fff; }
+  .card p { margin:0 !important; font-size:17px !important; color:var(--ink) !important; }
+  .card ul { margin:0; padding:0; list-style:none; }
+  .card li { padding:7px 0 7px 22px; position:relative; font-weight:700; font-size:17px; }
+  .card li::before { content:""; position:absolute; left:0; top:15px; width:9px; height:9px; background:#FFD6D8; }
+  .lesson { background:var(--red); color:#fff; border-radius:16px; padding:22px; margin:20px 0; }
+  .lesson small { display:block; color:#FFD6D8; font-weight:700; letter-spacing:.08em; margin-bottom:6px; }
+  .lesson b { font-size:clamp(19px,4.4vw,26px); line-height:1.3; }
+  .cta { text-align:center; margin-top:28px; }
+  .cta p { color:var(--ink) !important; font-weight:700; }
+  .foot { text-align:center; color:var(--muted); font-size:13px; margin-top:20px; }
+
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="seg" role="group" aria-label="Formato / Format / Formato">
+    <button data-v="carousel" aria-pressed="true" data-i>Carrossel</button>
+    <button data-v="site" aria-pressed="false" data-i>Página</button>
+  </div>
+  <div class="seg" role="group" aria-label="Idioma / Language / Idioma">
+    <button data-l="pt" aria-pressed="true">PT</button>
+    <button data-l="en" aria-pressed="false">EN</button>
+    <button data-l="es" aria-pressed="false">ES</button>
+  </div>
+</div>
+
+<!-- ============ FORMATO CARROSSEL ============ -->
+<div id="view-carousel">
+  <div class="chead">
+    <h1 data-i>Case: SLA do zero em 6 operações e 9 países</h1>
+    <p data-i>Deslize ou use as setas</p>
+  </div>
+  <main class="c">
+    <div class="stage">
+      <button class="nav prev" id="prev" aria-label="Anterior">&#8249;</button>
+      <div class="track" id="track" tabindex="0"></div>
+      <button class="nav next" id="next" aria-label="Próximo">&#8250;</button>
+    </div>
+    <div class="meta">
+      <span class="count" id="count">1 / 9</span>
+      <div class="dots" id="dots"></div>
+      <span class="count" aria-hidden="true"></span>
+    </div>
+    <p class="dl"><a class="btn" id="d1" href="pt.pdf" download data-i>Baixar PDF</a></p>
+  </main>
+</div>
+
+<!-- ============ FORMATO PÁGINA ============ -->
+<div id="view-site" class="site" hidden>
+  <section>
+    <p class="kick" data-i>Case de BI | Source to Contract</p>
+    <h1 data-i>Não dá para melhorar o que ninguém mede.</h1>
+    <div class="rule"></div>
+    <p class="lead" data-i>Como criei do zero o SLA de uma torre de Source to Contract para 6 operações e 9 países.</p>
+    <p class="by">Daniel Garcia Costa <span data-i>Analista de Dados e BI</span></p>
+  </section>
+
+  <section>
+    <p class="kick" data-i>O ponto de partida</p>
+    <h2 data-i>Um projeto novo, sem indicadores.</h2>
+    <p data-i>O acompanhamento era feito em planilhas. Ninguém media o prazo por etapa, então ninguém sabia onde o processo travava.</p>
+    <p class="hl" data-i>Sem prazo-alvo, sem medição.</p>
+  </section>
+
+  <section>
+    <p class="kick" data-i>O desafio</p>
+    <h2 data-i>6 operações. 9 países. Uma só régua.</h2>
+    <div class="stats">
+      <div class="stat"><b>6</b><span data-i>operações</span></div>
+      <div class="stat"><b>9</b><span data-i>países</span></div>
+      <div class="stat"><b>1</b><span data-i>critério comum</span></div>
+    </div>
+    <p data-i>Cada operação precisava ver o próprio resultado, e a gestão precisava comparar todas com o mesmo critério.</p>
+  </section>
+
+  <section>
+    <p class="kick" data-i>O que eu construí</p>
+    <h2 data-i>Um painel de SLA com três filtros e semáforo por responsável.</h2>
+    <img class="shot" id="shot1" alt="" loading="lazy">
+    <div class="chips">
+      <span class="chip" data-i>Período do SLA</span>
+      <span class="chip" data-i>Visão resumida ou detalhada</span>
+      <span class="chip" data-i>País da medição</span>
+    </div>
+    <div class="legend">
+      <b data-i>LEGENDA</b>
+      <p data-i>A, B, C: responsáveis por etapa (ex.: operação, fornecedor, cliente)</p>
+      <p data-i>T (Ciclo): tempo total do processo, do início ao fim</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kick" data-i>Por trás do semáforo</p>
+    <h2 data-i>O volume que sustenta cada percentual.</h2>
+    <img class="shot" id="shot2" alt="" loading="lazy">
+    <p data-i>Mesma tela, outra aba: quantas solicitações ficaram dentro do prazo. O percentual do semáforo nasce desses números.</p>
+  </section>
+
+  <section>
+    <p class="kick" data-i>Como o SLA funciona</p>
+    <h2 data-i>Cada processo tem uma meta de prazo, em dias.</h2>
+    <p data-i>Por responsável e para o ciclo total. O painel compara o cumprimento com os 90% esperados.</p>
+    <div class="formula">
+      <div class="t" data-i>% de cumprimento</div>
+      <div class="frac"><div class="n" data-i>(total - fora do prazo)</div><div class="d" data-i>total</div></div>
+      <p class="ex" data-i>Exemplo ilustrativo: Processo 1, Resp. A = (1.240 - 342) / 1.240 = 72,4%</p>
+    </div>
+    <div class="light"><i style="background:#1E7A55"></i><b data-i>90% ou mais</b><span data-i>dentro da meta</span></div>
+    <div class="light"><i style="background:#E6B93C"></i><b data-i>85% a 90%</b><span data-i>atenção</span></div>
+    <div class="light"><i style="background:#E41E2B"></i><b data-i>Abaixo de 85%</b><span data-i>crítico</span></div>
+  </section>
+
+  <section>
+    <p class="kick" data-i>Onde está o gargalo</p>
+    <h2 data-i>Do processo à etapa que atrasa.</h2>
+    <img class="shot" id="shot3" alt="" loading="lazy">
+    <p data-i>A gestão vê em qual etapa e com qual responsável o prazo estoura.</p>
+  </section>
+
+  <section>
+    <p class="kick" data-i>Como foi feito</p>
+    <h2 data-i>Regras da operação. Construção minha.</h2>
+    <div class="two">
+      <div class="card">
+        <h3 data-i>Definido pelas operações</h3>
+        <p data-i>Os prazos-alvo (meta em dias) de cada processo e de cada responsável.</p>
+      </div>
+      <div class="card red">
+        <h3 data-i>Feito por mim</h3>
+        <ul>
+          <li data-i>Regra de cálculo do SLA</li>
+          <li data-i>Modelagem de dados</li>
+          <li data-i>Medidas DAX e semáforo</li>
+          <li data-i>Tratamento com Power Query</li>
+          <li data-i>Layout do painel</li>
+        </ul>
+      </div>
+    </div>
+    <div class="chips"><span class="chip">Power BI</span><span class="chip">DAX</span><span class="chip">Power Query</span><span class="chip" data-i>Modelagem</span></div>
+  </section>
+
+  <section>
+    <p class="kick" data-i>Resultado</p>
+    <h2 data-i>Todo mundo olhando para o mesmo número.</h2>
+    <div class="stats">
+      <div class="stat"><b>100+</b><span data-i>pessoas, entre gestores e equipe operacional</span></div>
+      <div class="stat"><b>6</b><span data-i>operações medidas pela mesma régua</span></div>
+      <div class="stat"><b>9</b><span data-i>países acompanhados</span></div>
+    </div>
+    <p class="lead" data-i>Indicadores padronizados no lugar das planilhas.</p>
+    <div class="lesson"><small data-i>LIÇÃO</small><b data-i>Indicador bom não só mede o prazo. Ele mostra quem pode agir.</b></div>
+    <div class="cta">
+      <p data-i>Quer ver mais projetos?</p>
+      <a class="btn solid" id="home" href="https://daniel-garcia-costa.github.io/" data-i>Ver o portfólio</a>
+      <p class="dl"><a class="btn" id="d2" href="pt.pdf" download data-i>Baixar PDF</a></p>
+    </div>
+    <p class="foot" data-i>Dados fictícios. Nenhum dado de cliente é exibido.</p>
+  </section>
+</div>
+
+<script>
+  var DICT = {
+ "Carrossel": [
+  "Carousel",
+  "Carrusel"
+ ],
+ "Página": [
+  "Page",
+  "Página"
+ ],
+ "Case: SLA do zero em 6 operações e 9 países": [
+  "Case: building an SLA from scratch across 6 operations and 9 countries",
+  "Caso: SLA desde cero en 6 operaciones y 9 países"
+ ],
+ "Deslize ou use as setas": [
+  "Swipe or use the arrows",
+  "Desliza o usa las flechas"
+ ],
+ "Baixar PDF": [
+  "Download PDF",
+  "Descargar PDF"
+ ],
+ "Case de BI | Source to Contract": [
+  "BI Case  |  Source to Contract",
+  "Caso de BI  |  Source to Contract"
+ ],
+ "Não dá para melhorar o que ninguém mede.": [
+  "You can't improve what nobody measures.",
+  "No se puede mejorar lo que nadie mide."
+ ],
+ "Como criei do zero o SLA de uma torre de Source to Contract para 6 operações e 9 países.": [
+  "How I built, from scratch, the SLA for a Source to Contract tower across 6 operations and 9 countries.",
+  "Cómo creé desde cero el SLA de una torre de Source to Contract para 6 operaciones y 9 países."
+ ],
+ "Analista de Dados e BI": [
+  "Data & BI Analyst",
+  "Analista de Datos y BI"
+ ],
+ "O ponto de partida": [
+  "The starting point",
+  "El punto de partida"
+ ],
+ "Um projeto novo, sem indicadores.": [
+  "A new project, with no indicators.",
+  "Un proyecto nuevo, sin indicadores."
+ ],
+ "O acompanhamento era feito em planilhas. Ninguém media o prazo por etapa, então ninguém sabia onde o processo travava.": [
+  "Tracking was done in spreadsheets. Nobody measured lead time per stage, so nobody knew where the process got stuck.",
+  "El seguimiento se hacía en hojas de cálculo. Nadie medía el plazo por etapa, así que nadie sabía dónde se trababa el proceso."
+ ],
+ "Sem prazo-alvo, sem medição.": [
+  "No target, no measurement.",
+  "Sin plazo objetivo, sin medición."
+ ],
+ "O desafio": [
+  "The challenge",
+  "El desafío"
+ ],
+ "6 operações. 9 países. Uma só régua.": [
+  "6 operations. 9 countries. One yardstick.",
+  "6 operaciones. 9 países. Una sola vara."
+ ],
+ "operações": [
+  "operations",
+  "operaciones"
+ ],
+ "países": [
+  "countries",
+  "países"
+ ],
+ "critério comum": [
+  "single criterion",
+  "un solo criterio"
+ ],
+ "Cada operação precisava ver o próprio resultado, e a gestão precisava comparar todas com o mesmo critério.": [
+  "Each operation needed to see its own result, and management needed to compare them all with the same criterion.",
+  "Cada operación necesitaba ver su propio resultado, y la gerencia necesitaba compararlas todas con el mismo criterio."
+ ],
+ "O que eu construí": [
+  "What I built",
+  "Lo que construí"
+ ],
+ "Um painel de SLA com três filtros e semáforo por responsável.": [
+  "An SLA dashboard with three filters and a traffic light per owner.",
+  "Un panel de SLA con tres filtros y semáforo por responsable."
+ ],
+ "Período do SLA": [
+  "SLA period",
+  "Período del SLA"
+ ],
+ "Visão resumida ou detalhada": [
+  "Summary or detailed view",
+  "Vista resumida o detallada"
+ ],
+ "País da medição": [
+  "Country measured",
+  "País de la medición"
+ ],
+ "LEGENDA": [
+  "LEGEND",
+  "LEYENDA"
+ ],
+ "A, B, C: responsáveis por etapa (ex.: operação, fornecedor, cliente)": [
+  "A, B, C: owners of each stage (e.g. operations, supplier, client)",
+  "A, B, C: responsables de cada etapa (ej.: operación, proveedor, cliente)"
+ ],
+ "T (Ciclo): tempo total do processo, do início ao fim": [
+  "T (Cycle): total process time, start to finish",
+  "T (Ciclo): tiempo total del proceso, de inicio a fin"
+ ],
+ "Por trás do semáforo": [
+  "Behind the traffic light",
+  "Detrás del semáforo"
+ ],
+ "O volume que sustenta cada percentual.": [
+  "The volume behind each percentage.",
+  "El volumen que respalda cada porcentaje."
+ ],
+ "Mesma tela, outra aba: quantas solicitações ficaram dentro do prazo. O percentual do semáforo nasce desses números.": [
+  "Same screen, another tab: how many requests were within the target. The traffic-light percentage comes from these numbers.",
+  "La misma pantalla, otra pestaña: cuántas solicitudes quedaron dentro del plazo. El porcentaje del semáforo nace de estos números."
+ ],
+ "Como o SLA funciona": [
+  "How the SLA works",
+  "Cómo funciona el SLA"
+ ],
+ "Cada processo tem uma meta de prazo, em dias.": [
+  "Each process has a target lead time, in days.",
+  "Cada proceso tiene una meta de plazo, en días."
+ ],
+ "Por responsável e para o ciclo total. O painel compara o cumprimento com os 90% esperados.": [
+  "Per owner and for the total cycle. The dashboard compares compliance against the expected 90%.",
+  "Por responsable y para el ciclo total. El panel compara el cumplimiento con el 90% esperado."
+ ],
+ "% de cumprimento": [
+  "% compliance",
+  "% de cumplimiento"
+ ],
+ "(total - fora do prazo)": [
+  "(total  -  late)",
+  "(total  -  fuera de plazo)"
+ ],
+ "Exemplo ilustrativo: Processo 1, Resp. A = (1.240 - 342) / 1.240 = 72,4%": [
+  "Illustrative example: Process 1, Owner A  =  (1,240 - 342) / 1,240 = 72.4%",
+  "Ejemplo ilustrativo: Proceso 1, Resp. A  =  (1.240 - 342) / 1.240 = 72,4%"
+ ],
+ "90% ou mais": [
+  "90% or more",
+  "90% o más"
+ ],
+ "dentro da meta": [
+  "on target",
+  "dentro de la meta"
+ ],
+ "85% a 90%": [
+  "85% to 90%",
+  "85% a 90%"
+ ],
+ "atenção": [
+  "attention",
+  "atención"
+ ],
+ "Abaixo de 85%": [
+  "Below 85%",
+  "Debajo de 85%"
+ ],
+ "crítico": [
+  "critical",
+  "crítico"
+ ],
+ "Onde está o gargalo": [
+  "Where the bottleneck is",
+  "Dónde está el cuello de botella"
+ ],
+ "Do processo à etapa que atrasa.": [
+  "From the process to the stage that slips.",
+  "Del proceso a la etapa que se atrasa."
+ ],
+ "A gestão vê em qual etapa e com qual responsável o prazo estoura.": [
+  "Management sees at which stage, and with which owner, the deadline is missed.",
+  "La gerencia ve en qué etapa y con qué responsable se vence el plazo."
+ ],
+ "Como foi feito": [
+  "How it was built",
+  "Cómo se hizo"
+ ],
+ "Regras da operação. Construção minha.": [
+  "Rules set by operations. Built by me.",
+  "Reglas de la operación. Construcción mía."
+ ],
+ "Definido pelas operações": [
+  "Defined by operations",
+  "Definido por las operaciones"
+ ],
+ "Os prazos-alvo (meta em dias) de cada processo e de cada responsável.": [
+  "The target lead times (goal in days) for each process and each owner.",
+  "Los plazos objetivo (meta en días) de cada proceso y de cada responsable."
+ ],
+ "Feito por mim": [
+  "Done by me",
+  "Hecho por mí"
+ ],
+ "Regra de cálculo do SLA": [
+  "SLA calculation rule",
+  "Regla de cálculo del SLA"
+ ],
+ "Modelagem de dados": [
+  "Data modeling",
+  "Modelado de datos"
+ ],
+ "Medidas DAX e semáforo": [
+  "DAX measures and traffic light",
+  "Medidas DAX y semáforo"
+ ],
+ "Tratamento com Power Query": [
+  "Data prep with Power Query",
+  "Tratamiento con Power Query"
+ ],
+ "Layout do painel": [
+  "Dashboard layout",
+  "Diseño del panel"
+ ],
+ "Modelagem": [
+  "Modeling",
+  "Modelado"
+ ],
+ "Resultado": [
+  "Result",
+  "Resultado"
+ ],
+ "Todo mundo olhando para o mesmo número.": [
+  "Everyone looking at the same number.",
+  "Todos mirando el mismo número."
+ ],
+ "pessoas, entre gestores e equipe operacional": [
+  "people, including managers and operations staff",
+  "personas, entre gerentes y equipo operativo"
+ ],
+ "operações medidas pela mesma régua": [
+  "operations measured by the same yardstick",
+  "operaciones medidas con la misma vara"
+ ],
+ "países acompanhados": [
+  "countries tracked",
+  "países monitoreados"
+ ],
+ "Indicadores padronizados no lugar das planilhas.": [
+  "Standardized indicators replacing spreadsheets.",
+  "Indicadores estandarizados en lugar de hojas de cálculo."
+ ],
+ "LIÇÃO": [
+  "LESSON",
+  "LECCIÓN"
+ ],
+ "Indicador bom não só mede o prazo. Ele mostra quem pode agir.": [
+  "A good indicator doesn't just measure lead time. It shows who can act.",
+  "Un buen indicador no solo mide el plazo. Muestra quién puede actuar."
+ ],
+ "Quer ver mais projetos?": [
+  "Want to see more projects?",
+  "¿Quieres ver más proyectos?"
+ ],
+ "Ver o portfólio": [
+  "See the portfolio",
+  "Ver el portafolio"
+ ],
+ "Dados fictícios. Nenhum dado de cliente é exibido.": [
+  "Fictitious data. No client data is shown.",
+  "Datos ficticios. No se muestra ningún dato de cliente."
+ ]
+};
+  var N = 9;
+  var HOME = { pt: "https://daniel-garcia-costa.github.io/", en: "https://daniel-garcia-costa.github.io/en/", es: "https://daniel-garcia-costa.github.io/es/" };
+  var ARIA = {
+    pt: { p: "Anterior", n: "Próximo", a: "Página", t: "Case SLA Source to Contract | Daniel Garcia Costa" },
+    en: { p: "Previous", n: "Next", a: "Page", t: "SLA Source to Contract case | Daniel Garcia Costa" },
+    es: { p: "Anterior", n: "Siguiente", a: "Página", t: "Caso SLA Source to Contract | Daniel Garcia Costa" }
+  };
+  function norm(s) { return s.replace(/\s+/g, " ").trim(); }
+
+  // guarda o texto original (PT) de cada elemento traduzível
+  var items = Array.prototype.slice.call(document.querySelectorAll("[data-i]"));
+  items.forEach(function (el) { el.dataset.pt = norm(el.textContent); });
+
+  var track = document.getElementById("track"), dots = document.getElementById("dots"), count = document.getElementById("count");
+  var prev = document.getElementById("prev"), next = document.getElementById("next");
+  var langBtns = document.querySelectorAll("[data-l]"), viewBtns = document.querySelectorAll("[data-v]");
+  var lang = "pt", view = "carousel", idx = 0;
+
+  function go(i) { i = Math.max(0, Math.min(N - 1, i)); track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" }); }
+  function paint(i) {
+    idx = i; count.textContent = (i + 1) + " / " + N;
+    prev.disabled = i === 0; next.disabled = i === N - 1;
+    Array.prototype.forEach.call(dots.children, function (d, k) { if (k === i) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current"); });
+  }
+  function buildCarousel() {
+    var A = ARIA[lang];
+    track.style.scrollBehavior = "auto"; track.innerHTML = ""; dots.innerHTML = "";
+    for (var i = 1; i <= N; i++) {
+      var s = document.createElement("div"); s.className = "slide";
+      var im = document.createElement("img"); im.src = lang + "-" + i + ".png"; im.alt = A.a + " " + i + " / " + N;
+      if (i > 2) im.loading = "lazy";
+      s.appendChild(im); track.appendChild(s);
+      var b = document.createElement("button"); b.setAttribute("aria-label", A.a + " " + i);
+      (function (k) { b.addEventListener("click", function () { go(k); }); })(i - 1);
+      dots.appendChild(b);
+    }
+    track.scrollLeft = 0; track.style.scrollBehavior = "smooth"; paint(0);
+    prev.setAttribute("aria-label", A.p); next.setAttribute("aria-label", A.n);
+  }
+  function translate() {
+    items.forEach(function (el) {
+      var k = el.dataset.pt, t = DICT[k];
+      el.textContent = (lang === "pt" || !t) ? k : (lang === "en" ? t[0] : t[1]);
+    });
+    [1, 2, 3].forEach(function (n) {
+      var im = document.getElementById("shot" + n);
+      im.src = "site-" + lang + "-" + n + ".png";
+      im.alt = im.parentElement.querySelector("h2").textContent;
+    });
+    document.getElementById("d1").href = lang + ".pdf";
+    document.getElementById("d2").href = lang + ".pdf";
+    document.getElementById("home").href = HOME[lang];
+    document.documentElement.lang = lang === "pt" ? "pt-BR" : lang;
+    document.title = ARIA[lang].t;
+    langBtns.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.l === lang ? "true" : "false"); });
+  }
+  function setLang(l) { lang = l; translate(); buildCarousel(); }
+  function setView(v) {
+    view = v;
+    document.getElementById("view-carousel").hidden = v !== "carousel";
+    document.getElementById("view-site").hidden = v !== "site";
+    viewBtns.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.v === v ? "true" : "false"); });
+    if (history.replaceState) history.replaceState(null, "", v === "site" ? "#pagina" : "#carrossel");
+    window.scrollTo(0, 0);
+  }
+
+  track.addEventListener("scroll", function () { if (!track.clientWidth) return; var i = Math.round(track.scrollLeft / track.clientWidth); if (i !== idx) paint(i); });
+  prev.addEventListener("click", function () { go(idx - 1); });
+  next.addEventListener("click", function () { go(idx + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (view !== "carousel") return;
+    if (e.key === "ArrowLeft") go(idx - 1);
+    if (e.key === "ArrowRight") go(idx + 1);
+  });
+  langBtns.forEach(function (b) { b.addEventListener("click", function () { setLang(b.dataset.l); }); });
+  viewBtns.forEach(function (b) { b.addEventListener("click", function () { setView(b.dataset.v); }); });
+
+  var nav = (navigator.language || "pt").slice(0, 2);
+  setLang(ARIA[nav] ? nav : "pt");
+  setView(location.hash === "#pagina" ? "site" : "carousel");
+</script>
+</body>
+</html>
