@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case SLA Source to Contract | Daniel Garcia Costa</title>
+<meta name="description" content="Case de BI: SLA criado do zero para 6 operações e 9 países (dados fictícios).">
+<style>
+  :root { --red:#E41E2B; --ink:#1a1a1a; --bg:#ffffff; --card:#f4efed; --muted:#5f5f5f; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; }
+  body { font-family: Helvetica, Arial, sans-serif; color:var(--ink); background:var(--bg);
+         border-top:8px solid var(--red); min-height:100vh; }
+  header { padding:22px 16px 6px; text-align:center; }
+  h1 { font-size:clamp(18px, 4.6vw, 24px); margin:0 0 4px; }
+  p.sub { margin:0 0 14px; color:var(--muted); font-size:14px; }
+  .lang { display:inline-flex; gap:6px; background:var(--card); padding:5px; border-radius:999px; }
+  .lang button { border:0; background:transparent; color:var(--ink); font-weight:700; font-size:15px;
+                 padding:9px 22px; border-radius:999px; cursor:pointer; }
+  .lang button[aria-pressed="true"] { background:var(--red); color:#fff; }
+  .lang button:focus-visible, .nav:focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
+
+  main { max-width:560px; margin:14px auto 28px; padding:0 12px; }
+  .stage { position:relative; }
+  .track { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
+           border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.15); background:#fff;
+           scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .track::-webkit-scrollbar { display:none; }
+  .slide { flex:0 0 100%; scroll-snap-align:center; }
+  .slide img { display:block; width:100%; height:auto; aspect-ratio:1080 / 1350; }
+  .nav { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border:0;
+         border-radius:50%; background:var(--red); color:#fff; font-size:22px; font-weight:700;
+         cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; }
+  .nav[disabled] { opacity:.25; cursor:default; }
+  .prev { left:-6px; } .next { right:-6px; }
+  @media (min-width: 640px) { .prev { left:-56px; } .next { right:-56px; } main { max-width:520px; } }
+  .meta { display:flex; align-items:center; justify-content:space-between; margin-top:14px; gap:12px; }
+  .count { font-weight:700; font-size:15px; min-width:56px; }
+  .dots { display:flex; gap:7px; justify-content:center; flex:1; }
+  .dots button { width:10px; height:10px; border-radius:50%; border:0; padding:0; background:#d9d2cf; cursor:pointer; }
+  .dots button[aria-current="true"] { background:var(--red); transform:scale(1.25); }
+  .dl { text-align:center; margin-top:18px; font-size:14px; }
+  .dl a { color:var(--red); font-weight:700; text-decoration:none; border:2px solid var(--red);
+          padding:9px 18px; border-radius:999px; display:inline-block; }
+  .dl a:hover { background:var(--red); color:#fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="t">Case: SLA do zero em 6 operações e 9 países</h1>
+  <p class="sub" id="s">Deslize ou use as setas</p>
+  <div class="lang" role="group" aria-label="Idioma / Language / Idioma">
+    <button data-l="pt" aria-pressed="true">PT</button>
+    <button data-l="en" aria-pressed="false">EN</button>
+    <button data-l="es" aria-pressed="false">ES</button>
+  </div>
+</header>
+
+<main>
+  <div class="stage">
+    <button class="nav prev" id="prev" aria-label="Anterior">&#8249;</button>
+    <div class="track" id="track" tabindex="0"></div>
+    <button class="nav next" id="next" aria-label="Próximo">&#8250;</button>
+  </div>
+  <div class="meta">
+    <span class="count" id="count">1 / 9</span>
+    <div class="dots" id="dots"></div>
+    <span class="count" aria-hidden="true"></span>
+  </div>
+  <p class="dl"><a id="d" href="pt.pdf" download>Baixar PDF</a></p>
+</main>
+
+<script>
+  var N = 9;
+  var TXT = {
+    pt: { t: "Case: SLA do zero em 6 operações e 9 países", s: "Deslize ou use as setas", d: "Baixar PDF", p: "Anterior", n: "Próximo", a: "Página" },
+    en: { t: "Case: building an SLA from scratch across 6 operations and 9 countries", s: "Swipe or use the arrows", d: "Download PDF", p: "Previous", n: "Next", a: "Page" },
+    es: { t: "Caso: SLA desde cero en 6 operaciones y 9 países", s: "Desliza o usa las flechas", d: "Descargar PDF", p: "Anterior", n: "Siguiente", a: "Página" }
+  };
+  var track = document.getElementById("track");
+  var dots = document.getElementById("dots");
+  var count = document.getElementById("count");
+  var prev = document.getElementById("prev");
+  var next = document.getElementById("next");
+  var btns = document.querySelectorAll(".lang button");
+  var cur = "pt", idx = 0;
+
+  function go(i) {
+    i = Math.max(0, Math.min(N - 1, i));
+    track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" });
+  }
+  function paint(i) {
+    idx = i;
+    count.textContent = (i + 1) + " / " + N;
+    prev.disabled = i === 0;
+    next.disabled = i === N - 1;
+    Array.prototype.forEach.call(dots.children, function (d, k) {
+      if (k === i) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current");
+    });
+  }
+  function build(l) {
+    cur = l;
+    var T = TXT[l];
+    track.style.scrollBehavior = "auto";
+    track.innerHTML = ""; dots.innerHTML = "";
+    for (var i = 1; i <= N; i++) {
+      var s = document.createElement("div"); s.className = "slide";
+      var im = document.createElement("img");
+      im.src = l + "-" + i + ".png";
+      im.alt = T.a + " " + i + " / " + N;
+      if (i > 2) im.loading = "lazy";
+      s.appendChild(im); track.appendChild(s);
+      var b = document.createElement("button");
+      b.setAttribute("aria-label", T.a + " " + i);
+      (function (k) { b.addEventListener("click", function () { go(k); }); })(i - 1);
+      dots.appendChild(b);
+    }
+    track.scrollLeft = 0;
+    track.style.scrollBehavior = "smooth";
+    paint(0);
+    document.getElementById("t").textContent = T.t;
+    document.getElementById("s").textContent = T.s;
+    var d = document.getElementById("d"); d.textContent = T.d; d.href = l + ".pdf";
+    prev.setAttribute("aria-label", T.p); next.setAttribute("aria-label", T.n);
+    document.documentElement.lang = l === "pt" ? "pt-BR" : l;
+    btns.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.l === l ? "true" : "false"); });
+  }
+
+  track.addEventListener("scroll", function () {
+    var i = Math.round(track.scrollLeft / track.clientWidth);
+    if (i !== idx) paint(i);
+  });
+  prev.addEventListener("click", function () { go(idx - 1); });
+  next.addEventListener("click", function () { go(idx + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") go(idx - 1);
+    if (e.key === "ArrowRight") go(idx + 1);
+  });
+  btns.forEach(function (b) { b.addEventListener("click", function () { build(b.dataset.l); }); });
+
+  var nav = (navigator.language || "pt").slice(0, 2);
+  build(TXT[nav] ? nav : "pt");
+</script>
+</body>
+</html>
