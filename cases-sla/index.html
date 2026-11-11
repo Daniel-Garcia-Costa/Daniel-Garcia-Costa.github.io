@@ -106,7 +106,7 @@
     for (var i = 1; i <= N; i++) {
       var s = document.createElement("div"); s.className = "slide";
       var im = document.createElement("img");
-      im.src = "img/" + l + "-" + i + ".png";
+      im.src = l + "-" + i + ".png";
       im.alt = T.a + " " + i + " / " + N;
       if (i > 2) im.loading = "lazy";
       s.appendChild(im); track.appendChild(s);
