@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case SLA Source to Contract | Daniel Garcia Costa</title>
+<style>
+  :root { --red:#E41E2B; --ink:#1a1a1a; --bg:#ffffff; --card:#f4efed; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Helvetica, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:24px 20px 8px; text-align:center; border-top:8px solid var(--red); }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.sub { margin:0 0 16px; color:#5f5f5f; font-size:15px; }
+  .lang { display:inline-flex; gap:8px; background:var(--card); padding:6px; border-radius:999px; }
+  .lang button { border:0; background:transparent; color:var(--ink); font-weight:700; font-size:15px;
+                 padding:10px 22px; border-radius:999px; cursor:pointer; }
+  .lang button[aria-pressed="true"] { background:var(--red); color:#fff; }
+  .lang button:focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
+  main { max-width:760px; margin:16px auto 40px; padding:0 12px; }
+  iframe { width:100%; height:86vh; min-height:640px; border:1px solid #ddd; border-radius:12px; background:#fff; }
+  .dl { text-align:center; margin-top:12px; font-size:14px; }
+  .dl a { color:var(--red); font-weight:700; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="t">Case: SLA do zero em 6 operações e 9 países</h1>
+  <p class="sub" id="s">Escolha o idioma</p>
+  <div class="lang" role="group" aria-label="Idioma / Language / Idioma">
+    <button data-l="pt" aria-pressed="true">PT</button>
+    <button data-l="en" aria-pressed="false">EN</button>
+    <button data-l="es" aria-pressed="false">ES</button>
+  </div>
+</header>
+<main>
+  <iframe id="v" title="Case SLA"></iframe>
+  <p class="dl"><a id="d" href="#" download>Baixar PDF</a></p>
+</main>
+<script>
+  // Os PDFs ficam na mesma pasta deste arquivo.
+  var FILES = { pt: "pt.pdf", en: "en.pdf", es: "es.pdf" };
+  var TXT = {
+    pt: ["Case: SLA do zero em 6 operações e 9 países", "Escolha o idioma", "Baixar PDF"],
+    en: ["Case: building an SLA from scratch across 6 operations and 9 countries", "Choose a language", "Download PDF"],
+    es: ["Caso: SLA desde cero en 6 operaciones y 9 países", "Elige el idioma", "Descargar PDF"]
+  };
+  var btns = document.querySelectorAll(".lang button");
+  function setLang(l) {
+    var url = encodeURI(FILES[l]);
+    document.getElementById("v").src = url;
+    var d = document.getElementById("d"); d.href = url; d.textContent = TXT[l][2];
+    document.getElementById("t").textContent = TXT[l][0];
+    document.getElementById("s").textContent = TXT[l][1];
+    document.documentElement.lang = l === "pt" ? "pt-BR" : l;
+    btns.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.l === l ? "true" : "false"); });
+  }
+  btns.forEach(function (b) { b.addEventListener("click", function () { setLang(b.dataset.l); }); });
+  var nav = (navigator.language || "pt").slice(0, 2);
+  setLang(FILES[nav] ? nav : "pt");
+</script>
+</body>
+</html>
